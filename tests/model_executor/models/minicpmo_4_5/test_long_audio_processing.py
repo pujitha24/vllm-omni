@@ -11,7 +11,9 @@ Covers:
   - multiple >30s audios unpad in chunk order
   - <=30s audio unpadding byte-identical to the pre-fix behavior
   - ``MiniCPMOAudioFeatureInputs``: a batch mixing a >30s and a <=30s audio
-    (different slice counts) validates instead of raising
+    (different slice counts) validates instead of raising, whether from a
+    single request with multiple audios of different lengths or from
+    multiple requests sharing an encoder batch
 """
 
 from __future__ import annotations
@@ -161,8 +163,10 @@ class TestMixedChunkCountBatchValidation:
     def test_batch_mixes_different_slice_counts(self) -> None:
         # A >30s audio (3 slices) and a <=30s audio (2 slices) scheduled in
         # the same encoder batch: audio_feature_lens is a list of per-audio
-        # tensors with different lengths (3 vs 2). Before the fix this raised
-        # ValueError: "audio_feature_lens contains inconsistent shapes".
+        # tensors with different lengths (3 vs 2). This is the shape produced
+        # both by a single request with two audios of different lengths and
+        # by two separate requests batched together. Before the fix this
+        # raised ValueError: "audio_feature_lens contains inconsistent shapes".
         audio_feature_lens = [
             torch.tensor([_CHUNK_FRAMES, _CHUNK_FRAMES, 1]),
             torch.tensor([_CHUNK_FRAMES, 1]),
